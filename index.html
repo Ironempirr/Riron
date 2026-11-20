@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10151d">
+<title>IRON EMPIRR | Gym Management • Firebase</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--bg:#0d1219;--panel:#151d28;--panel2:#1c2735;--line:#2b394b;--text:#eef3f8;--muted:#9eacbc;--accent:#f39a38;--green:#36c98a;--red:#f16b6b;--blue:#65a9ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Tahoma,Arial,sans-serif;line-height:1.55}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#171717;font-weight:700}
+button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button.danger{background:#5a252b;color:#ffdfe1}button.small{padding:6px 9px;font-size:12px}
+header{position:sticky;top:0;z-index:5;background:#101720ed;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-weight:800;font-size:18px}.brand span{color:var(--accent)}.sub{font-size:11px;color:var(--muted)}
+main{max-width:1200px;margin:auto;padding:16px 14px 100px}
+nav{display:flex;gap:8px;overflow:auto;padding:10px 14px;background:#111923;border-bottom:1px solid var(--line);position:sticky;top:58px;z-index:4}
+nav button{white-space:nowrap;background:transparent;color:var(--muted);border:1px solid transparent;padding:8px 12px}nav button.active{background:var(--panel2);border-color:var(--line);color:var(--accent)}
+h1{font-size:22px;margin:8px 0 14px}h2{font-size:17px;margin:0 0 12px}.muted{color:var(--muted)}.tiny{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:14px;min-width:0}.stat{font-size:25px;font-weight:800;margin-top:5px}.stat-label{color:var(--muted);font-size:12px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.toolbar input{max-width:260px}
+input,select,textarea{width:100%;background:#0f1721;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px;outline:none;min-width:0}input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+label{display:block;color:var(--muted);font-size:12px;margin:0 0 5px}.field{margin-bottom:10px}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:12px}table{border-collapse:collapse;width:100%;min-width:650px;background:var(--panel)}th,td{padding:10px 11px;text-align:right;border-bottom:1px solid var(--line);font-size:13px}th{background:var(--panel2);color:#cbd7e4;white-space:nowrap}tr:last-child td{border-bottom:0}
+.badge{display:inline-block;border-radius:30px;padding:3px 8px;font-size:11px;background:#263648;color:#bcd9ff}.ok{background:#173e32;color:#7be2b4}.warn{background:#49391e;color:#ffd27a}.bad{background:#4b252b;color:#ff9ca3}
+.hidden{display:none!important}.section{display:none}.section.active{display:block}.actions{display:flex;gap:5px;flex-wrap:wrap}.empty{text-align:center;padding:26px;color:var(--muted)}
+.notice{background:#302719;border:1px solid #735321;color:#ffda99;padding:10px 12px;border-radius:10px;margin:10px 0;font-size:13px}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:24px}
+@media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr}header{top:0}nav{top:55px}.stat{font-size:21px}main{padding-inline:10px}.card{padding:12px}}
+@media(max-width:380px){.grid{grid-template-columns:1fr 1fr}.brand{font-size:15px}}
+</style>
+</head>
+<body>
+<header><div><div class="brand">IRON <span>EMPIRR</span></div><div class="sub">نظام إدارة الجيم والمخزون</div></div><div class="actions" style="align-items:center"><span id="firebaseBadge" class="badge warn">مزامنة...</span><span id="userBadge" class="badge">غير مسجل</span><button id="logoutBtn" class="secondary small" onclick="logout()" style="display:none">خروج</button><button id="headerBackupBtn" class="secondary small" onclick="backupData()">نسخة احتياطية</button></div></header>
+<div id="loginOverlay" style="position:fixed;inset:0;z-index:1000;background:#080d14f5;display:flex;align-items:center;justify-content:center;padding:18px">
+ <div class="card" style="width:min(420px,100%);padding:22px">
+  <div class="brand" style="font-size:24px;margin-bottom:4px">IRON <span>EMPIRR</span></div>
+  <h2>تسجيل الدخول</h2><p class="tiny">كل موظف يدخل بحسابه لتسجيل شيفته وعملياته.</p>
+  <form id="loginForm"><div class="field"><label>اسم المستخدم</label><input name="username" autocomplete="username" required></div><div class="field"><label>كلمة المرور</label><input name="password" type="password" autocomplete="current-password" required></div><button style="width:100%">دخول</button></form>
+  <p class="tiny" id="firstLoginHint">أول تشغيل: اسم المستخدم admin وكلمة المرور 1234. غيّر كلمة المرور بعد الدخول.</p>
+ </div>
+</div>
+<nav id="nav">
+<button class="active" data-tab="dashboard">الرئيسية</button><button data-tab="members">المشتركين</button><button data-tab="attendance">الحضور</button><button data-tab="daily">الحصص اليومية</button><button data-tab="stock">المخزون</button><button data-tab="buy">المشتريات</button><button data-tab="sell">المبيعات</button><button data-tab="returns">المرتجعات</button><button data-tab="expenses">المصروفات</button><button data-tab="finance">الخزينة والتقفيل</button><button data-tab="reports">التقارير</button><button data-tab="settings">الإعدادات</button><button data-tab="staff" id="staffNav" class="hidden">الموظفين والشيفتات</button>
+</nav>
+<main>
+<section id="dashboard" class="section active">
+<h1>لوحة التحكم</h1>
+<div class="grid">
+<div class="card"><div class="stat-label">المشتركون النشطون</div><div class="stat" id="dActive">0</div></div>
+<div class="card"><div class="stat-label">اشتراكات تنتهي خلال 7 أيام</div><div class="stat" id="dExpiring">0</div></div>
+<div class="card"><div class="stat-label">إيرادات اليوم</div><div class="stat" id="dToday">0 ج.م</div></div>
+<div class="card"><div class="stat-label">قيمة المخزون بسعر الشراء</div><div class="stat" id="dStock">0 ج.م</div></div>
+</div>
+<div class="cards" style="margin-top:12px">
+<div class="card manager-only" id="dMonthIncomeCard"><h2>ملخص الشهر الحالي</h2><div class="stat" id="dMonthIncome">0 ج.م</div><div class="stat-label">المبالغ المحصلة من الاشتراكات والحصص والمبيعات</div></div>
+<div class="card employee-or-manager-expenses" id="dMonthExpensesCard"><h2>مخلص المصروفات الحالي</h2><div class="stat" id="dMonthExpenses">0 ج.م</div><div class="stat-label">إجمالي المصروفات المسجلة خلال الشهر الحالي</div></div>
+<div class="card"><h2>تنبيهات المخزون والصلاحية</h2><div id="dAlerts" class="tiny">لا توجد تنبيهات</div></div>
+<div class="card" style="margin-top:12px"><h2>تنبيهات انتهاء الاشتراكات</h2><div id="dExpiryAlerts" class="tiny">لا توجد اشتراكات قريبة من الانتهاء</div></div>
+</div>
+<div class="notice">البيانات محفوظة على هذا الجهاز والمتصفح. استخدم «نسخة احتياطية» بانتظام، خاصة قبل تغيير الهاتف أو المتصفح.</div>
+</section>
+
+<section id="members" class="section">
+<h1>إدارة المشتركين</h1>
+<div class="card"><h2>إضافة مشترك / تجديد اشتراك</h2>
+<form id="memberForm">
+<div class="formgrid">
+<div class="field"><label>اسم اللاعب *</label><input name="name" required></div>
+<div class="field"><label>رقم الموبايل</label><input name="phone" inputmode="tel"></div>
+<div class="field"><label>نوع الحصة</label><select name="type"><option value="iron">حديد</option><option value="both">حديد كارديو</option><option value="boxing">بوكس</option></select></div>
+<div class="field"><label>إجمالي الحصص طوال مدة الاشتراك</label><input name="sessions" type="number" min="1" step="1" placeholder="اكتب عدد الحصص بنفسك" required></div>
+<div class="field"><label>مدة الاشتراك بالشهور</label><input name="duration" type="number" min="1" step="1" value="1" required></div>
+<div class="field"><label>تاريخ بداية الاشتراك</label><input name="start" type="date" required></div>
+<div class="field"><label>المبلغ الإجمالي للاشتراك (ج.م)</label><input name="price" type="number" min="0" step=".01" required></div>
+<div class="field"><label>المبلغ المدفوع الآن</label><input name="paid" type="number" min="0" step=".01" value="0" required></div>
+<div class="field"><label>طريقة الدفع</label><select name="method"><option>كاش</option><option>محفظة</option><option>إنستا باي</option><option>آجل</option></select></div>
+</div><div id="memberDatePreview" class="notice" style="margin-top:10px">بداية الاشتراك: — | نهاية الاشتراك: —</div><button type="submit">حفظ الاشتراك</button>
+</form></div>
+<div class="toolbar"><input id="memberSearch" placeholder="بحث بالاسم أو الموبايل..." oninput="renderMembers()"><select id="memberFilter" onchange="renderMembers()" style="max-width:180px"><option value="all">كل المشتركين</option><option value="active">نشط</option><option value="expired">منتهي</option></select></div>
+<div class="tablewrap"><table><thead><tr><th>اسم اللاعب</th><th>الموبايل</th><th>نوع الحصة</th><th>إجمالي الحصص</th><th>الحصص المستخدمة</th><th>الحصص المتبقية</th><th>مدة الاشتراك</th><th>البداية</th><th>النهاية</th><th>المبلغ</th><th>المدفوع</th><th>المتبقي ماليًا</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="memberRows"></tbody></table></div>
+</section>
+
+
+
+<section id="attendance" class="section">
+<h1>الحضور والانصراف</h1><div class="card"><div class="field"><label>ابحث باسم المشترك أو رقم الموبايل</label><input id="attSearch" placeholder="اكتب الاسم أو رقم الهاتف..." oninput="renderAttendanceOptions()"></div><div class="formgrid"><div class="field"><label>اختر المشترك</label><select id="attMember" onchange="renderAttendanceSummary()"></select></div><div class="field"><label>التاريخ</label><input id="attDate" type="date"></div></div><div id="attSummary" class="notice">اختر مشتركًا لعرض تفاصيل اشتراكه وحصصه المتبقية.</div><button onclick="addAttendance()">تسجيل حضور</button></div>
+<div class="tablewrap"><table><thead><tr><th>التاريخ</th><th>المشترك</th><th>الموبايل</th><th>الوقت</th><th>إجراء</th></tr></thead><tbody id="attendanceRows"></tbody></table></div>
+</section>
+
+<section id="daily" class="section">
+<h1>الحصص اليومية</h1><div class="card"><h2>تسجيل دخول يوم واحد</h2><form id="dailyForm"><div class="formgrid">
+<div class="field"><label>اسم العميل (اختياري)</label><input name="name" placeholder="عميل يومي"></div><div class="field"><label>رقم الموبايل (اختياري)</label><input name="phone"></div>
+<div class="field"><label>نوع الحصة</label><select name="type"><option value="iron">حديد</option><option value="both">حديد وكارديو</option><option value="boxing">بوكس</option></select></div>
+<div class="field"><label>التاريخ</label><input name="date" type="date" required></div>
+<div class="field"><label>السعر</label><input name="price" type="number" min="0" step=".01" required></div><div class="field"><label>طريقة الدفع</label><select name="method"><option>كاش</option><option>محفظة</option><option>إنستا باي</option><option>آجل</option></select></div>
+ <div class="field" style="grid-column:1/-1"><label>ملاحظات</label><textarea name="notes" rows="2" placeholder="ملاحظات عن العميل أو الحصة"></textarea></div>
+</div><button>تسجيل الحصة وتحصيل المبلغ</button></form></div>
+<div class="tablewrap"><table><thead><tr><th>التاريخ</th><th>العميل</th><th>نوع الحصة</th><th>السعر</th><th>طريقة الدفع</th><th>ملاحظات</th></tr></thead><tbody id="dailyRows"></tbody></table></div>
+</section>
+
+<section id="stock" class="section">
+<h1>المنتجات والمخزون</h1><div class="card"><h2>إضافة صنف جديد</h2><form id="productForm"><div class="formgrid">
+<div class="field"><label>اسم المنتج *</label><input name="name" required placeholder="مثال: Whey Protein"></div><div class="field"><label>التصنيف</label><input name="category" placeholder="مكملات / إكسسوارات"></div>
+<div class="field"><label>حد التنبيه عند انخفاض الكمية</label><input name="min" type="number" min="0" value="2"></div><div class="field"><label>باركود (اختياري)</label><input name="barcode"></div>
+</div><button>إضافة المنتج</button></form></div>
+<div class="tablewrap"><table><thead><tr><th>المنتج</th><th>التصنيف</th><th>الكمية</th><th>حد التنبيه</th><th>قيمة المخزون</th><th>حالة الصلاحية</th></tr></thead><tbody id="stockRows"></tbody></table></div>
+<div class="card" style="margin-top:12px"><h2>دفعة / تشغيلة مخزون</h2><p class="tiny">تُضاف الكمية من خلال المشتريات حتى يتم تسجيل المورد والتكلفة والفاتورة. كل فاتورة شراء تنشئ تشغيلة مستقلة بتاريخ صلاحيتها.</p></div>
+<div class="tablewrap"><table><thead><tr><th>المنتج</th><th>رقم التشغيلة</th><th>الكمية المتبقية</th><th>تكلفة الوحدة</th><th>الإنتاج</th><th>انتهاء الصلاحية</th><th>الحالة</th></tr></thead><tbody id="batchRows"></tbody></table></div>
+</section>
+
+<section id="buy" class="section">
+<h1>المشتريات</h1><div class="card"><h2>تسجيل فاتورة شراء / إضافة مخزون</h2><form id="buyForm"><div class="formgrid">
+<div class="field"><label>المنتج</label><select name="product" id="buyProduct" required></select></div><div class="field"><label>اسم المورد</label><input name="supplier"></div>
+<div class="field"><label>الكمية</label><input name="qty" type="number" min="1" required></div><div class="field"><label>سعر شراء الوحدة</label><input name="cost" type="number" min="0" step=".01" required></div><div class="field"><label>سعر بيع الوحدة</label><input name="salePrice" type="number" min="0" step=".01" required placeholder="مثال: 520"></div>
+<div class="field"><label>رقم التشغيلة</label><input name="batch" placeholder="اختياري"></div><div class="field"><label>تاريخ الإنتاج</label><input name="mfg" type="date"></div>
+<div class="field"><label>تاريخ انتهاء الصلاحية</label><input name="exp" type="date"></div><div class="field"><label>تاريخ الشراء</label><input name="date" type="date" required></div>
+<div class="field"><label>المدفوع للمورد</label><input name="paid" type="number" min="0" step=".01" required></div><div class="field"><label>طريقة الدفع</label><select name="method"><option>كاش</option><option>آجل</option><option>محفظة</option><option>تحويل بنكي</option></select></div>
+</div><button>حفظ فاتورة الشراء</button></form></div>
+<div class="tablewrap"><table><thead><tr><th>التاريخ</th><th>المنتج</th><th>المورد</th><th>الكمية</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>إجراء</th></tr></thead><tbody id="buyRows"></tbody></table></div>
+</section>
+
+<section id="sell" class="section">
+<h1>المبيعات</h1><div class="card"><h2>تسجيل عملية بيع</h2><form id="sellForm"><div class="formgrid">
+<div class="field"><label>المنتج</label><select name="product" id="sellProduct" required></select></div><div class="field"><label>الكمية</label><input name="qty" type="number" min="1" required></div>
+<div class="field"><label>سعر بيع الوحدة (يُملأ تلقائيًا)</label><input name="price" id="sellPrice" type="number" min="0" step=".01" required></div><div class="field"><label>اسم العميل (اختياري)</label><input name="customer"></div>
+<div class="field"><label>التاريخ</label><input name="date" type="date" required></div><div class="field"><label>طريقة الدفع</label><select name="method"><option>كاش</option><option>محفظة</option><option>آجل</option><option>تحويل بنكي</option></select></div>
+</div><button>تسجيل البيع</button></form></div>
+<div class="tablewrap"><table><thead><tr><th>التاريخ</th><th>المنتج</th><th>العميل</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th>التكلفة</th><th>الربح الإجمالي</th></tr></thead><tbody id="sellRows"></tbody></table></div>
+</section>
+
+
+<section id="returns" class="section">
+<h1>مرتجعات المشتريات والمبيعات</h1>
+<div class="card">
+<h2>تسجيل مرتجع جديد</h2>
+<form id="returnForm">
+<div class="formgrid">
+<div class="field"><label>نوع المرتجع</label><select name="type" id="returnType"><option value="sale">مرتجع مبيعات (من العميل)</option><option value="purchase">مرتجع مشتريات (للمورد)</option></select></div>
+<div class="field"><label>ابحث عن المنتج بالاسم أو الكود / الباركود</label><input id="returnProductSearch" list="returnProductHints" placeholder="اكتب اسم المنتج أو الكود بنفسك"><datalist id="returnProductHints"></datalist></div>
+<div class="field"><label>الفاتورة الأصلية للمنتج</label><select name="invoice" id="returnInvoice" required></select></div>
+<div class="field"><label>الكمية المرتجعة</label><input name="qty" id="returnQty" type="number" min="1" step="1" required></div>
+<div class="field"><label>تاريخ المرتجع</label><input name="date" type="date" required></div>
+<div class="field"><label>طريقة رد / استلام المبلغ</label><select name="method"><option>كاش</option><option>محفظة</option><option>إنستا باي</option><option>تحويل بنكي</option><option>آجل / تسوية رصيد</option></select></div>
+<div class="field"><label>سبب المرتجع (اختياري)</label><input name="reason" placeholder="مثال: عيب في المنتج أو تغيير المنتج"></div>
+</div>
+<div class="notice" id="returnPreview">اختر نوع المرتجع والفاتورة لعرض الكمية المتاحة وقيمة المرتجع.</div>
+<button type="submit">تأكيد المرتجع وتحديث المخزون</button>
+</form>
+</div>
+<div class="tablewrap"><table><thead><tr><th>التاريخ</th><th>النوع</th><th>رقم الفاتورة</th><th>المنتج</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th>طريقة التسوية</th><th>السبب</th></tr></thead><tbody id="returnRows"></tbody></table></div>
+</section>
+
+<section id="finance" class="section">
+<h1>الخزينة والتقفيل الشهري</h1><div class="card"><h2>ملخص شهر</h2><div class="formgrid"><div class="field"><label>اختر الشهر</label><input type="month" id="closeMonth"></div><div class="field"><label>ملاحظات التقفيل</label><input id="closeNotes" placeholder="ملاحظات اختيارية"></div></div><button onclick="renderFinance()">عرض التقفيل</button></div>
+<div class="grid" style="margin-top:12px">
+<div class="card"><div class="stat-label">تحصيل الاشتراكات</div><div class="stat" id="fSubs">0</div></div><div class="card"><div class="stat-label">الحصص اليومية</div><div class="stat" id="fDaily">0</div></div><div class="card"><div class="stat-label">مبيعات المنتجات</div><div class="stat" id="fSales">0</div></div><div class="card"><div class="stat-label">المصروفات والمشتريات المدفوعة</div><div class="stat" id="fExpenses">0</div></div>
+</div><div class="card" style="margin-top:12px"><div class="stat-label">صافي حركة النقدية للشهر (التحصيلات - المدفوعات)</div><div class="stat" id="fNet">0 ج.م</div><div class="tiny" id="fCompare"></div></div>
+<div class="card" style="margin-top:12px"><h2>حفظ التقفيل الشهري في الأرشيف</h2><p class="tiny">يحفظ ملخص الشهر كما هو، ولا يحذف أي حركة أو يغيّر بيانات الخزينة. يمكنك الرجوع لتقفيلات أي شهر في أي سنة.</p><button onclick="saveMonthlyClose()">حفظ تقفيل الشهر</button><div class="tablewrap"><table><thead><tr><th>الشهر</th><th>إجمالي التحصيلات</th><th>المدفوعات</th><th>صافي الشهر</th><th>ملاحظات</th></tr></thead><tbody id="closingRows"></tbody></table></div></div>
+</section>
+
+<section id="expenses" class="section">
+<h1>المصروفات</h1>
+<div class="card"><h2>تسجيل مصروف جديد</h2><p class="tiny">أي مصروف يتم تسجيله هنا يُحسب كمدفوع من الخزنة، ويظهر في ملخص الشهر والتقارير والشيفت.</p><form id="expenseForm"><div class="formgrid"><div class="field"><label>بيان المصروف</label><input name="desc" placeholder="مثال: مكنسة، مساحة، أدوات نظافة..." required></div><div class="field"><label>المبلغ</label><input name="amount" type="number" min="0.01" step=".01" required></div><div class="field"><label>التاريخ</label><input name="date" type="date" required></div></div><button>تسجيل المصروف وخصمه من الخزنة</button></form></div>
+<div class="card" style="margin-top:12px"><h2>سجل المصروفات</h2><div class="tablewrap"><table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>المسجل</th><th>الشيفت</th><th>إجراء</th></tr></thead><tbody id="expenseRows"></tbody></table></div></div>
+</section>
+
+<section id="reports" class="section">
+<h1>التقارير</h1><div class="card"><div class="field"><label>الفترة</label><input type="month" id="reportMonth"></div><button onclick="renderReports()">إنشاء التقرير</button><button class="secondary" onclick="exportCSV()">تصدير تقرير CSV</button><div id="reportOutput" style="margin-top:14px"></div></div>
+</section>
+
+<section id="settings" class="section">
+<div class="notice">☁️ البيانات الآن مجهزة للمزامنة مع Firebase على جميع الأجهزة. يجب تفعيل Firestore وAnonymous Authentication وإضافة القواعد المطلوبة في مشروع Firebase.</div>
+<h1>الإعدادات والأسعار</h1><div class="card"><h2>أسعار الاشتراكات حسب نظام التمرين</h2><p class="tiny">للأيام الأسبوعية تُحسب الأسعار شهريًا، ولأنظمة 8 أو 12 أو 20 حصة حدّد سعر الباقة. مدة الاشتراك المختارة تُستخدم كتاريخ انتهاء للصلاحية.</p>
+<form id="priceForm"><div class="tablewrap"><table><thead><tr><th>الأيام</th><th>حديد فقط</th><th>حديد + كارديو</th></tr></thead><tbody id="priceRows"></tbody></table></div><div class="formgrid" style="margin-top:12px"><div class="field"><label>الحصة اليومية - حديد</label><input id="dailyIron" type="number" min="0" step=".01"></div><div class="field"><label>الحصة اليومية - حديد + كارديو</label><input id="dailyBoth" type="number" min="0" step=".01"></div></div><button>حفظ الأسعار</button></form></div>
+<div class="card" style="margin-top:12px"><h2>إدارة البيانات</h2><p class="tiny">يمكنك تنزيل نسخة احتياطية أو استرجاع نسخة سابقة. الاسترجاع يستبدل البيانات الحالية.</p><button onclick="backupData()">تنزيل نسخة احتياطية</button> <label style="margin-top:12px">استرجاع نسخة JSON</label><input type="file" id="restoreFile" accept=".json,application/json" onchange="restoreData(event)"><button class="danger" style="margin-top:12px" onclick="clearData()">مسح كل البيانات</button></div>
+</section>
+
+<section id="staff" class="section">
+ <h1>إدارة الموظفين والشيفتات</h1>
+ <div class="cards">
+  <div class="card"><h2>إنشاء حساب موظف</h2><form id="staffForm"><div class="field"><label>اسم الموظف الظاهر</label><input name="name" required></div><div class="field"><label>اسم المستخدم</label><input name="username" required autocomplete="off"></div><div class="field"><label>كلمة المرور</label><input name="password" type="password" minlength="4" required autocomplete="new-password"></div><button>إنشاء الحساب</button></form></div>
+  <div class="card"><h2>تعديل حساب المدير</h2><form id="managerAccountForm"><div class="field"><label>اسم المستخدم الجديد</label><input name="username" autocomplete="off" required></div><div class="field"><label>كلمة المرور الحالية للتأكيد</label><input name="old" type="password" required></div><div class="field"><label>كلمة المرور الجديدة</label><input name="new" type="password" minlength="4" required></div><button class="secondary">حفظ بيانات المدير</button></form></div>
+ </div>
+ <div class="card" style="margin-top:12px"><h2>حسابات الموظفين والصلاحيات</h2><div class="field"><label>اختر الموظف لتعديل صلاحياته</label><select id="permissionUser"></select></div><div id="permissionChecks" class="formgrid"></div><button onclick="savePermissions()">حفظ الصلاحيات</button><div class="tablewrap"><table><thead><tr><th>الموظف</th><th>اسم المستخدم</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="staffRows"></tbody></table></div></div>
+ <div class="card" style="margin-top:12px"><h2>الشيفتات وسجل الحركة</h2><div class="grid"><div><div class="stat-label">الشيفت المفتوح</div><div class="stat" id="openShiftCount">0</div></div><div><div class="stat-label">عدد الشيفتات المسجلة</div><div class="stat" id="allShiftCount">0</div></div></div><div class="tablewrap"><table><thead><tr><th>الموظف</th><th>بداية الشيفت</th><th>نهاية الشيفت</th><th>التحصيلات</th><th>المدفوعات</th><th>صافي الحركة</th><th>رصيد بداية</th><th>النقدية الفعلية</th><th>الفرق</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="shiftRows"></tbody></table></div>
+ <div class="card" style="margin-top:14px;background:#111923"><h2>تقرير كل موظف</h2><p class="tiny">اختر موظفًا لمراجعة إجمالي تحصيلاته ومدفوعاته وصافي الحركة وفروق الخزينة، مع تفاصيل كل شيفت.</p><div class="field"><label>الموظف</label><select id="employeeReportSelect" onchange="renderEmployeeReport()"><option value="all">كل الموظفين</option></select></div><div class="cards"><div class="card"><div class="stat-label">إجمالي التحصيلات</div><div class="stat" id="empReportIncome">0</div></div><div class="card"><div class="stat-label">إجمالي المدفوعات</div><div class="stat" id="empReportOut">0</div></div><div class="card"><div class="stat-label">صافي الحركة</div><div class="stat" id="empReportNet">0</div></div><div class="card"><div class="stat-label">إجمالي فروق الخزينة</div><div class="stat" id="empReportDiff">0</div></div></div><div class="tablewrap"><table><thead><tr><th>الموظف</th><th>بداية الشيفت</th><th>نهاية الشيفت</th><th>التحصيلات</th><th>المدفوعات</th><th>الصافي</th><th>المتوقع نقدًا</th><th>المسلم فعليًا</th><th>الفرق</th><th>الحالة</th></tr></thead><tbody id="employeeReportRows"></tbody></table></div></div>
+ <div class="field" style="margin-top:12px"><label>سجل العمليات – اختر الشيفت</label><select id="auditShift" onchange="renderAudit()"></select></div><div class="tablewrap"><table><thead><tr><th>الوقت</th><th>الموظف</th><th>العملية</th><th>التفاصيل</th><th>القيمة</th></tr></thead><tbody id="auditRows"></tbody></table></div></div>
+ <div class="notice">تنبيه: هذه النسخة تحفظ الحسابات والصلاحيات محليًا على نفس الجهاز والمتصفح. تسجيل الدخول مناسب لتنظيم العمل الداخلي، لكنه ليس نظام حماية مركزيًا؛ لا تستخدمه لحماية بيانات حساسة من شخص لديه وصول تقني لملف التطبيق أو المتصفح.</div>
+</section>
+<footer>IRON EMPIRR • تم التطوير بواسطة زياد ثوري 💜</footer>
+</main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyCNoBi9qh3VtauYzzjTK8Cl02yPMMkXPPc",
+  authDomain: "iron-empirr.firebaseapp.com",
+  projectId: "iron-empirr",
+  storageBucket: "iron-empirr.firebasestorage.app",
+  messagingSenderId: "841095628200",
+  appId: "1:841095628200:web:08e486d10c1ffe5c84c99d",
+  measurementId: "G-EMG0GFW1WB"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const firebaseDb = getFirestore(firebaseApp);
+const firebaseAuth = getAuth(firebaseApp);
+window.IRON_FIREBASE = {firebaseApp, firebaseDb, firebaseAuth, doc, getDoc, setDoc, onSnapshot, signInAnonymously, onAuthStateChanged}; window.dispatchEvent(new Event('iron-firebase-ready'));
+</script>
+<script>
+const KEY='gym_manager_v1';
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const money=n=>(Number(n)||0).toLocaleString('ar-EG',{maximumFractionDigits:2})+' ج.م';
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const plusMonths=(date,months)=>{let d=new Date(date+'T12:00:00');let day=d.getDate();d.setMonth(d.getMonth()+Number(months));if(d.getDate()<day)d.setDate(0);return d.toISOString().slice(0,10)};
+const defaultData={members:[],boxingMembers:[],attendance:[],daily:[],products:[],batches:[],purchases:[],sales:[],purchaseReturns:[],salesReturns:[],expenses:[],monthlyClosings:[],users:[],shifts:[],auditLog:[],prices:{iron:{2:0,3:0,4:0,5:0,6:0,8:0,12:0,20:0},both:{2:0,3:0,4:0,5:0,6:0,8:0,12:0,20:0},dailyIron:0,dailyBoth:0}};
+let db;try{db={...structuredClone(defaultData),...(JSON.parse(localStorage.getItem(KEY))||{})};db.monthlyClosings ||= [];db.purchaseReturns ||= [];db.salesReturns ||= [];db.boxingMembers ||= [];db.users ||= [];db.shifts ||= [];db.auditLog ||= [];db.prices={...structuredClone(defaultData.prices),...(db.prices||{})};db.prices.iron={...defaultData.prices.iron,...(db.prices.iron||{})};db.prices.both={...defaultData.prices.both,...(db.prices.both||{})};db.purchaseReturns ||= [];db.salesReturns ||= [];db.purchases.forEach(p=>{if(!Array.isArray(p.payments))p.payments=Number(p.paid)>0?[{date:p.date,amount:Number(p.paid),method:p.method||'كاش'}]:[];if(p.remaining===undefined)p.remaining=Math.max(0,Number(p.total||0)-Number(p.paid||0))})}catch(e){db=structuredClone(defaultData)}
+let firebaseReady=false, firebaseSyncing=false, firebaseUnsubscribe=null;
+const FIREBASE_DOC='appData/main';
+function firebaseRef(){return window.IRON_FIREBASE.doc(window.IRON_FIREBASE.firebaseDb,'appData','main')}
+async function initFirebaseSync(){
+  try{
+    await window.IRON_FIREBASE.signInAnonymously(window.IRON_FIREBASE.firebaseAuth);
+    const ref=firebaseRef(), snap=await window.IRON_FIREBASE.getDoc(ref);
+    if(snap.exists()){
+      const remote=snap.data(); if(remote && remote.data){ db=remote.data; normalizeDb(); localStorage.setItem(KEY,JSON.stringify(db)); }
+    }else{
+      normalizeDb(); await window.IRON_FIREBASE.setDoc(ref,{data:db,updatedAt:Date.now()});
+    }
+    firebaseReady=true; el('firebaseBadge').textContent='متصل'; el('firebaseBadge').className='badge good'; auditSnapshot=snapshotRecords(); refreshAll();
+    firebaseUnsubscribe=window.IRON_FIREBASE.onSnapshot(ref,s=>{
+      if(!s.exists()||firebaseSyncing)return; const remote=s.data()?.data; if(remote){db=remote; normalizeDb(); localStorage.setItem(KEY,JSON.stringify(db)); auditSnapshot=snapshotRecords(); refreshAll();}
+    });
+  }catch(err){console.error('Firebase sync error',err); firebaseReady=false; if(el('firebaseBadge')){el('firebaseBadge').textContent='غير متصل';el('firebaseBadge').className='badge bad';}}
+}
+function normalizeDb(){db.monthlyClosings ||= [];db.purchaseReturns ||= [];db.salesReturns ||= [];db.boxingMembers ||= [];db.users ||= [];db.shifts ||= [];db.auditLog ||= [];db.prices={...structuredClone(defaultData.prices),...(db.prices||{})};db.prices.iron={...defaultData.prices.iron,...(db.prices.iron||{})};db.prices.both={...defaultData.prices.both,...(db.prices.both||{})};db.expenses ||= [];db.expenses.forEach(x=>{if(!x.method)x.method='كاش'});db.purchases ||= [];db.purchases.forEach(p=>{if(!Array.isArray(p.payments))p.payments=Number(p.paid)>0?[{date:p.date,amount:Number(p.paid),method:p.method||'كاش'}]:[];if(p.remaining===undefined)p.remaining=Math.max(0,Number(p.total||0)-Number(p.paid||0))});if(!db.users.length)db.users.push({id:'manager-root',name:'المدير',username:'admin',password:'1234',role:'manager',active:true,permissions:[]});}
+
+if(!db.users.length)db.users.push({id:'manager-root',name:'المدير',username:'admin',password:'1234',role:'manager',active:true,permissions:[]});
+let currentUser=null,currentShift=null;
+const permissionTabs=[['dashboard','الرئيسية'],['members','المشتركين'],['attendance','الحضور'],['daily','الحصص اليومية'],['stock','المخزون'],['buy','المشتريات'],['sell','المبيعات'],['returns','المرتجعات'],['expenses','المصروفات'],['finance','الخزينة والتقفيل'],['reports','التقارير'],['settings','الإعدادات']];
+let auditSnapshot={};
+function snapshotRecords(){let out={};['members','boxingMembers','attendance','daily','products','batches','purchases','sales','purchaseReturns','salesReturns','expenses','monthlyClosings'].forEach(k=>(db[k]||[]).forEach(x=>{if(x?.id)out[k+':'+x.id]=JSON.stringify(x)}));return out}
+auditSnapshot=snapshotRecords();
+function shiftTotals(sh){let sid=sh.id;let income=0,out=0,cashIn=0,cashOut=0;for(let k of ['members','boxingMembers'])for(let m of (db[k]||[]))for(let p of (m.payments||[]))if(p.shiftId===sid){let a=Number(p.amount)||0;income+=a;if((p.method||'كاش')==='كاش')cashIn+=a}for(let x of db.daily||[])if(x.shiftId===sid){let a=Number(x.price)||0;income+=a;if((x.method||'كاش')==='كاش')cashIn+=a}for(let x of db.sales||[])if(x.shiftId===sid){let a=Number(x.total)||0;income+=a;if((x.method||'كاش')==='كاش')cashIn+=a}for(let x of db.purchaseReturns||[])if(x.shiftId===sid){let a=Number(x.total)||0;income+=a;if((x.method||'كاش')==='كاش')cashIn+=a}for(let x of db.salesReturns||[])if(x.shiftId===sid){let a=Number(x.total)||0;out+=a;if((x.method||'كاش')==='كاش')cashOut+=a}for(let x of db.purchases||[])for(let p of (x.payments||[]))if(p.shiftId===sid){let a=Number(p.amount)||0;out+=a;if((p.method||'كاش')==='كاش')cashOut+=a}for(let x of db.expenses||[])if(x.shiftId===sid){let a=Number(x.amount)||0;out+=a;if((x.method||'كاش')==='كاش')cashOut+=a}return {income,out,net:income-out,cashIn,cashOut,cashNet:cashIn-cashOut}}
+function recordLabel(k){return ({members:'اشتراك حديد',boxingMembers:'اشتراك بوكس',attendance:'تسجيل حضور',daily:'حصة يومية',products:'منتج جديد',batches:'إضافة مخزون',purchases:'فاتورة مشتريات',sales:'عملية بيع',purchaseReturns:'مرتجع مشتريات',salesReturns:'مرتجع مبيعات',expenses:'مصروف',monthlyClosings:'تقفيل شهري'})[k]||k}
+function trackAudit(){if(!currentUser)return;let now=new Date().toISOString();for(let k of ['members','boxingMembers','attendance','daily','products','batches','purchases','sales','purchaseReturns','salesReturns','expenses','monthlyClosings']){for(let x of (db[k]||[])){if(!x?.id)continue;let key=k+':'+x.id,old=auditSnapshot[key],isNew=old===undefined,oldObj={};if(!isNew){try{oldObj=JSON.parse(old)}catch{}}
+ if(isNew){x.createdBy=currentUser.id;x.createdByName=currentUser.name;x.shiftId=currentShift?.id||null;x.createdAt=now;}else if(old!==JSON.stringify(x)){x.updatedBy=currentUser.id;x.updatedByName=currentUser.name;x.updatedAt=now;}
+ // Tag newly-added payment and attendance rows with the active employee and shift.
+ let oldPayCount=isNew?0:(oldObj.payments||[]).length;for(let n=oldPayCount;n<(x.payments||[]).length;n++){let z=x.payments[n];if(z&&!z.shiftId){z.shiftId=currentShift?.id||null;z.createdBy=currentUser.id;z.createdByName=currentUser.name;z.createdAt=now;}}
+ if(k==='boxingMembers'){let oldUsedCount=isNew?0:(oldObj.used||[]).length;for(let n=oldUsedCount;n<(x.used||[]).length;n++){let z=x.used[n];if(z&&!z.shiftId){z.shiftId=currentShift?.id||null;z.createdBy=currentUser.id;z.createdByName=currentUser.name;z.createdAt=now;}}}
+ if(isNew||old!==JSON.stringify(x)){let amount=0;if(k==='members'||k==='boxingMembers'){let before=(oldObj.payments||[]).length;amount=(x.payments||[]).slice(isNew?0:before).reduce((a,p)=>a+(Number(p.amount)||0),0)}else if(k==='daily')amount=Number(x.price)||0;else if(k==='sales')amount=Number(x.total)||0;else if(k==='expenses')amount=Number(x.amount)||0;else if(k==='purchases'){let before=(oldObj.payments||[]).length;amount=(x.payments||[]).slice(isNew?0:before).reduce((a,p)=>a+(Number(p.amount)||0),0)}
+ db.auditLog.push({id:uid(),at:now,userId:currentUser.id,userName:currentUser.name,shiftId:currentShift?.id||null,action:(isNew?'إضافة ':'تعديل ')+recordLabel(k),details:x.name||x.desc||x.customer||'',amount});}
+ auditSnapshot[key]=JSON.stringify(x);
+ }}let currentSnapshot=snapshotRecords();for(let key of Object.keys(auditSnapshot)){if(!(key in currentSnapshot)){let k=key.split(':')[0];db.auditLog.push({id:uid(),at:now,userId:currentUser.id,userName:currentUser.name,shiftId:currentShift?.id||null,action:'حذف '+recordLabel(k),details:key.split(':').slice(1).join(':'),amount:0})}} }
+async function save(){trackAudit();localStorage.setItem(KEY,JSON.stringify(db));auditSnapshot=snapshotRecords();refreshAll();if(firebaseReady){firebaseSyncing=true;try{await window.IRON_FIREBASE.setDoc(firebaseRef(),{data:db,updatedAt:Date.now()});}catch(e){console.error('Firebase save error',e);alert('تعذر مزامنة البيانات مع Firebase. تأكد من Firestore Rules واتصال الإنترنت.')}finally{firebaseSyncing=false}}}
+function authMessage(msg){el('loginError')?.remove();let p=document.createElement('p');p.id='loginError';p.className='notice';p.textContent=msg;el('loginForm').appendChild(p)}
+function applyAccess(){let manager=currentUser?.role==='manager';el('headerBackupBtn').classList.toggle('hidden',!manager);document.querySelectorAll('#nav button').forEach(b=>{let tab=b.dataset.tab;if(tab==='staff'){b.classList.toggle('hidden',!manager);return}let allowed=manager||(currentUser?.permissions||[]).includes(tab);b.classList.toggle('hidden',!allowed)});if(!manager&&!((currentUser?.permissions||[]).includes(document.querySelector('.section.active')?.id))){let first=(currentUser?.permissions||[])[0]||'dashboard';showTab(first)}el('staffNav').classList.toggle('hidden',!manager)}
+function loginUser(username,password){let u=db.users.find(x=>x.username.toLowerCase()===username.toLowerCase()&&x.password===password&&x.active!==false);if(!u){authMessage('اسم المستخدم أو كلمة المرور غير صحيحة، أو الحساب موقوف.');return}if(u.role!=='manager'){let open=db.shifts.find(x=>!x.endAt);if(open&&open.userId!==u.id){authMessage('يوجد شيفت مفتوح حاليًا باسم '+open.userName+'. يجب تسليمه أولًا أو على المدير إغلاقه.');return}currentShift=open||{id:uid(),userId:u.id,userName:u.name,startAt:new Date().toISOString(),endAt:null,openingCash:Number(prompt('رصيد النقدية عند استلام الشيفت (ج.م):','0'))||0};if(!open)db.shifts.push(currentShift)}currentUser=u;el('loginOverlay').style.display='none';el('userBadge').textContent=u.name+(currentShift?' • شيفت مفتوح':' • مدير');el('logoutBtn').style.display='inline-block';el('logoutBtn').textContent=currentShift?'تسليم الشيفت والخروج':'خروج';el('firstLoginHint').classList.add('hidden');applyAccess();if(currentShift){db.auditLog.push({id:uid(),at:new Date().toISOString(),userId:u.id,userName:u.name,shiftId:currentShift.id,action:'استلام شيفت',details:'بداية الشيفت',amount:currentShift.openingCash});save()}refreshAll()}
+el('loginForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target;loginUser(String(val(f,'username')).trim(),String(val(f,'password')))});
+function closeShift(sh,currentActor){if(!sh||sh.endAt)return true;let t=shiftTotals(sh),expected=Number(sh.openingCash||0)+t.cashNet;let raw=prompt('إجمالي النقدية الفعلية في الدرج عند التسليم (ج.م):\nالمتوقع حسب النقدية فقط: '+money(expected),String(expected.toFixed(2)));if(raw===null)return false;let actual=Number(raw);if(!Number.isFinite(actual)||actual<0){alert('اكتب قيمة نقدية صحيحة.');return false}sh.endAt=new Date().toISOString();sh.closingCash=actual;sh.income=t.income;sh.out=t.out;sh.net=t.net;sh.cashNet=t.cashNet;sh.expectedCash=expected;sh.difference=actual-expected;sh.closedBy=currentActor?.name||'المدير';db.auditLog.push({id:uid(),at:sh.endAt,userId:currentActor?.id,userName:currentActor?.name,shiftId:sh.id,action:'تسليم شيفت',details:'فرق الخزينة: '+money(sh.difference),amount:actual});save();return true}
+function logout(){if(!currentUser)return;if(currentShift&&!closeShift(currentShift,currentUser))return;currentUser=null;currentShift=null;el('loginOverlay').style.display='flex';el('logoutBtn').style.display='none';el('userBadge').textContent='غير مسجل';el('loginForm').reset();el('loginError')?.remove();document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));el('dashboard').classList.add('active')}
+function requireManager(){if(currentUser?.role!=='manager'){alert('هذه الخاصية متاحة للمدير فقط.');return false}return true}
+function renderStaff(){if(!requireManager())return;el('managerAccountForm')?.querySelector('[name=username]') && (el('managerAccountForm').querySelector('[name=username]').value=currentUser.username);let emps=db.users.filter(u=>u.role!=='manager');el('staffRows').innerHTML=emps.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.username)}</td><td><span class="badge ${u.active===false?'bad':'ok'}">${u.active===false?'موقوف':'نشط'}</span></td><td><div class="actions"><button class="small secondary" onclick="toggleUser('${u.id}')">${u.active===false?'تفعيل':'إيقاف'}</button><button class="small secondary" onclick="editUserCredentials('${u.id}')">تعديل اليوزر والباسورد</button></div></td></tr>`).join('')||'<tr><td colspan="4" class="empty">لم تتم إضافة موظفين بعد</td></tr>';el('permissionUser').innerHTML=emps.map(u=>`<option value="${u.id}">${esc(u.name)} (${esc(u.username)})</option>`).join('');renderPermissionChecks();el('openShiftCount').textContent=db.shifts.filter(x=>!x.endAt).length;el('allShiftCount').textContent=db.shifts.length;el('shiftRows').innerHTML=[...db.shifts].reverse().map(sh=>{let t=shiftTotals(sh);return `<tr><td>${esc(sh.userName)}</td><td>${new Date(sh.startAt).toLocaleString('ar-EG')}</td><td>${sh.endAt?new Date(sh.endAt).toLocaleString('ar-EG'):'—'}</td><td>${money(t.income)}</td><td>${money(t.out)}</td><td>${money(t.net)}</td><td>${money(sh.openingCash||0)}</td><td>${sh.closingCash==null?'—':money(sh.closingCash)}</td><td>${sh.difference==null?'—':money(sh.difference)}</td><td><span class="badge ${sh.endAt?'':'warn'}">${sh.endAt?'مغلق':'مفتوح'}</span></td><td>${sh.endAt?'—':`<button class="small danger" onclick="managerCloseShift('${sh.id}')">إغلاق الشيفت</button>`}</td></tr>`}).join('')||'<tr><td colspan="11" class="empty">لا توجد شيفتات مسجلة</td></tr>';el('auditShift').innerHTML='<option value="all">كل العمليات</option>'+[...db.shifts].reverse().map(sh=>`<option value="${sh.id}">${esc(sh.userName)} – ${new Date(sh.startAt).toLocaleString('ar-EG')}</option>`).join('');let reportSelect=el('employeeReportSelect'),prevReport=reportSelect.value;reportSelect.innerHTML='<option value="all">كل الموظفين</option>'+emps.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('');if([...reportSelect.options].some(o=>o.value===prevReport))reportSelect.value=prevReport;renderEmployeeReport();renderAudit()}
+function renderPermissionChecks(){let id=el('permissionUser').value,u=db.users.find(x=>x.id===id);el('permissionChecks').innerHTML=permissionTabs.map(([k,n])=>`<label style="display:flex;gap:8px;align-items:center;background:#0f1721;padding:8px;border-radius:8px"><input type="checkbox" value="${k}" ${u?.permissions?.includes(k)?'checked':''} style="width:auto">${n}</label>`).join('')}
+el('permissionUser').addEventListener('change',renderPermissionChecks);
+function savePermissions(){if(!requireManager())return;let u=db.users.find(x=>x.id===el('permissionUser').value);if(!u)return;u.permissions=[...el('permissionChecks').querySelectorAll('input:checked')].map(x=>x.value);save();alert('تم حفظ صلاحيات الموظف')}
+function toggleUser(id){if(!requireManager())return;let u=db.users.find(x=>x.id===id);if(!u)return;u.active=u.active===false;save()}
+function editUserCredentials(id){if(!requireManager())return;let u=db.users.find(x=>x.id===id);if(!u)return;let username=prompt('اسم المستخدم الجديد للموظف '+u.name+':',u.username);if(username===null)return;username=username.trim();if(!username){alert('اسم المستخدم لا يمكن أن يكون فارغًا.');return}if(db.users.some(x=>x.id!==u.id&&x.username.toLowerCase()===username.toLowerCase())){alert('اسم المستخدم مستخدم بالفعل.');return}let password=prompt('كلمة المرور الجديدة (اتركها فارغة للإبقاء على الحالية):');if(password===null)return;if(password&&password.length<4){alert('كلمة المرور قصيرة.');return}u.username=username;if(password)u.password=password;save();renderStaff();alert('تم تحديث بيانات الموظف.')}
+function managerCloseShift(id){if(!requireManager())return;let sh=db.shifts.find(x=>x.id===id);if(!sh||sh.endAt)return;if(!confirm('هل تريد إغلاق شيفت '+sh.userName+' بواسطة المدير؟'))return;if(closeShift(sh,currentUser)){save();renderStaff()}}
+function renderEmployeeReport(){if(currentUser?.role!=='manager')return;let id=el('employeeReportSelect')?.value||'all',shifts=db.shifts.filter(sh=>id==='all'||sh.userId===id),totals=shifts.reduce((a,sh)=>{let t=shiftTotals(sh);a.income+=t.income;a.out+=t.out;a.net+=t.net;if(sh.difference!=null)a.diff+=Number(sh.difference)||0;return a},{income:0,out:0,net:0,diff:0});el('empReportIncome').textContent=money(totals.income);el('empReportOut').textContent=money(totals.out);el('empReportNet').textContent=money(totals.net);el('empReportDiff').textContent=money(totals.diff);el('employeeReportRows').innerHTML=[...shifts].reverse().map(sh=>{let t=shiftTotals(sh),expected=sh.expectedCash??(Number(sh.openingCash||0)+t.cashNet);return `<tr><td>${esc(sh.userName||'—')}</td><td>${new Date(sh.startAt).toLocaleString('ar-EG')}</td><td>${sh.endAt?new Date(sh.endAt).toLocaleString('ar-EG'):'—'}</td><td>${money(t.income)}</td><td>${money(t.out)}</td><td>${money(t.net)}</td><td>${money(expected)}</td><td>${sh.closingCash==null?'—':money(sh.closingCash)}</td><td>${sh.difference==null?'—':money(sh.difference)}</td><td>${sh.endAt?'مغلق':'مفتوح'}</td></tr>`}).join('')||'<tr><td colspan="10" class="empty">لا توجد شيفتات لهذا الاختيار</td></tr>'}
+function renderAudit(){if(currentUser?.role!=='manager')return;let id=el('auditShift').value||'all',rows=(db.auditLog||[]).filter(x=>id==='all'||x.shiftId===id).slice().reverse();el('auditRows').innerHTML=rows.map(x=>`<tr><td>${new Date(x.at).toLocaleString('ar-EG')}</td><td>${esc(x.userName||'—')}</td><td>${esc(x.action||'—')}</td><td>${esc(x.details||'—')}</td><td>${x.amount?money(x.amount):'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد عمليات مسجلة</td></tr>'}
+el('staffForm').addEventListener('submit',e=>{e.preventDefault();if(!requireManager())return;let f=e.target,name=val(f,'name').trim(),username=val(f,'username').trim(),password=val(f,'password');if(db.users.some(u=>u.username.toLowerCase()===username.toLowerCase())){alert('اسم المستخدم مستخدم بالفعل.');return}db.users.push({id:uid(),name,username,password,role:'employee',active:true,permissions:['dashboard','members','boxing','attendance','daily','sell','expenses']});f.reset();save();renderStaff();alert('تم إنشاء حساب الموظف. يمكنك تعديل صلاحياته الآن.')});
+el('managerAccountForm').addEventListener('submit',e=>{e.preventDefault();if(!requireManager())return;let f=e.target,username=val(f,'username').trim(),old=val(f,'old'),next=val(f,'new');if(old!==currentUser.password){alert('كلمة المرور الحالية غير صحيحة.');return}if(!username){alert('اسم المستخدم لا يمكن أن يكون فارغًا.');return}if(db.users.some(x=>x.id!==currentUser.id&&x.username.toLowerCase()===username.toLowerCase())){alert('اسم المستخدم مستخدم بالفعل.');return}if(next.length<4){alert('كلمة المرور الجديدة قصيرة.');return}currentUser.username=username;currentUser.password=next;save();f.reset();f.querySelector('[name=username]').value=currentUser.username;alert('تم تحديث اسم المستخدم وكلمة المرور للمدير')});
+
+function el(id){return document.getElementById(id)}
+function val(form,name){return new FormData(form).get(name)}
+function fmtDate(d){return d||'—'}
+function prettyDate(d){if(!d)return '—';let x=new Date(d+'T12:00:00');return x.toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'})}
+function subscriptionEnd(start,duration){return plusMonths(start,Number(duration)||1)}
+function addDays(date,n){let d=new Date(date+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+function memberPeriod(m,date=today()){let start=m.start,end=m.end,duration=Math.max(1,Number(m.duration)||1),idx=-1,from='',to='';for(let i=0;i<duration;i++){let a=plusMonths(start,i),next=plusMonths(start,i+1),b=i===duration-1?end:addDays(next,-1);if(date>=a&&date<=b){idx=i;from=a;to=b;break}}if(idx<0&&date===end){idx=duration-1;from=plusMonths(start,duration-1);to=end}return {index:idx,start:from,end:to,active:idx>=0&&date>=start&&date<=end}}
+function memberPeriodUsage(m,date=today()){let period={index:0,start:m.start,end:m.end,active:!!m.start&&!!m.end&&date>=m.start&&date<=m.end};let used=db.attendance.filter(a=>a.member===m.id&&a.date>=m.start&&a.date<=m.end&&a.date<=date).length,quota=Math.max(0,Number(m.sessions)||0);return {period,used,quota,remaining:period.active?Math.max(0,quota-used):0}}
+function updateMemberDatePreview(){let f=el('memberForm');if(!f)return;let start=val(f,'start'),duration=Number(val(f,'duration'))||1,end=start?subscriptionEnd(start,duration):'',sessions=Number(val(f,'sessions'));let sessionsText=Number.isInteger(sessions)&&sessions>0?`${sessions} حصة إجماليًا طوال مدة الاشتراك`:'عدد الحصص لم يُحدد بعد';let box=el('memberDatePreview');if(box)box.innerHTML=`<b>بداية الاشتراك:</b> ${prettyDate(start)}<br><b>نهاية الاشتراك:</b> ${prettyDate(end)} <span class="tiny">(المدة ${duration} شهر — ${sessionsText})</span>`}
+function typeName(t){return t==='both'?'حديد كارديو':t==='boxing'?'بوكس':'حديد'}
+function unitName(u,n){return u==='day'?(n===1?'يوم':'أيام'):u==='week'?(n===1?'أسبوع':'أسابيع'):(n===1?'شهر':'شهور')}
+function planLabel(m){if(m.planValue&&m.planUnit)return `${m.planValue} ${unitName(m.planUnit,Number(m.planValue))}`;return `${m.days||'—'} ${Number(m.days)>=8?'حصة':'أيام أسبوعيًا'}`}
+function active(m){let u=memberPeriodUsage(m,today());return u.period.active&&u.remaining>0}
+function monthOf(d){return (d||'').slice(0,7)}
+function sum(a,fn){return a.reduce((s,x)=>s+fn(x),0)}
+function showTab(id){if(!currentUser){return}if(id==='staff'&&currentUser.role!=='manager'){alert('هذه الصفحة للمدير فقط.');return}if(currentUser.role!=='manager'&&!(currentUser.permissions||[]).includes(id)){alert('ليس لديك صلاحية لدخول هذا القسم.');return}document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));if(id==='returns')renderReturns();if(id==='finance')renderFinance();if(id==='reports')renderReports();if(id==='staff')renderStaff()}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+function initDates(){document.querySelectorAll('input[type=date]').forEach(x=>{if(!x.value)x.value=today()});el('closeMonth').value=today().slice(0,7);el('reportMonth').value=today().slice(0,7)}
+el('memberForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target,dur=Number(val(f,'duration')),price=Number(val(f,'price')),paid=Number(val(f,'paid')),sessions=Number(val(f,'sessions')),start=val(f,'start');if(!start||!Number.isInteger(dur)||dur<1||!Number.isInteger(sessions)||sessions<1||!Number.isFinite(price)||price<0||!Number.isFinite(paid)||paid<0||paid>price){alert('اكتب مدة الاشتراك وعدد الحصص بنفسك، وتأكد من تاريخ البداية والمبالغ.');return}let end=subscriptionEnd(start,dur),m={id:uid(),name:val(f,'name').trim(),phone:val(f,'phone'),type:val(f,'type'),sessions,duration:dur,start,end,price,paid:0,payments:[]};if(!m.name){alert('اكتب اسم اللاعب.');return}db.members.push(m);if(paid>0){m.paid=paid;m.payments.push({date:today(),amount:paid,method:val(f,'method')})}f.reset();f.querySelector('[name=start]').value=today();f.querySelector('[name=paid]').value=0;f.querySelector('[name=sessions]').value='';f.querySelector('[name=duration]').value=1;updateMemberDatePreview();save();alert(`تم حفظ الاشتراك بنجاح\nبداية الاشتراك: ${prettyDate(start)}\nنهاية الاشتراك: ${prettyDate(end)}\nإجمالي الحصص طوال مدة الاشتراك: ${sessions} حصة`)});
+
+if(el('boxingForm')){el('boxingForm').querySelector('[name=start]').value=today();
+el('boxingForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target,price=Number(val(f,'price')),paid=Number(val(f,'paid')),months=Number(val(f,'months')),sessions=Number(val(f,'sessions'));if(!Number.isInteger(months)||months<1||!Number.isInteger(sessions)||sessions<1||sessions>12){alert('تأكد من مدة الاشتراك وعدد الحصص (بحد أقصى 12).');return}if(paid<0||paid>price){alert('المبلغ المدفوع غير صحيح أو أكبر من سعر الاشتراك.');return}let start=val(f,'start'),m={id:uid(),name:val(f,'name').trim(),phone:val(f,'phone'),trainingType:val(f,'trainingType'),months,sessions,start,end:plusMonths(start,months),price,paid:0,payments:[],used:[],notes:val(f,'notes')};db.boxingMembers.push(m);if(paid>0){m.paid=paid;m.payments.push({date:today(),amount:paid,method:val(f,'method')})}f.reset();f.querySelector('[name=start]').value=today();f.querySelector('[name=months]').value=1;f.querySelector('[name=sessions]').value=12;f.querySelector('[name=paid]').value=0;save();alert('تم حفظ اشتراك البوكس')});}
+function boxingStatus(m){m.used ||= [];return m.end>=today()&&m.used.length<m.sessions}
+function renderBoxing(){let q=(el('boxingSearch')?.value||'').trim().toLowerCase(),filter=el('boxingFilter')?.value||'all';let arr=(db.boxingMembers||[]).filter(m=>(m.name.toLowerCase().includes(q)||(m.phone||'').includes(q))&&(filter==='all'||(filter==='active'?boxingStatus(m):!boxingStatus(m))));el('boxingRows').innerHTML=arr.map(m=>{let used=m.used?.length||0,remaining=Math.max(0,m.sessions-used),status=boxingStatus(m),warn=remaining===1&&status?'<br><span class="badge warn">تنبيه: باقي حصة واحدة</span>':remaining===0?'<br><span class="badge bad">اكتملت الحصص</span>':'';return `<tr><td>${esc(m.name)}</td><td>${esc(m.phone||'—')}</td><td>${m.trainingType==='iron'?'حديد':m.trainingType==='both'?'حديد وكارديو':m.trainingType==='cardio'?'كارديو':'—'}</td><td>${m.months} شهر</td><td>${used} / ${m.sessions}${warn}</td><td>${remaining}</td><td>${m.start}</td><td>${m.end}</td><td>${money(m.price)}</td><td>${money(m.paid)}</td><td>${money(Math.max(0,m.price-m.paid))}</td><td>${esc(m.notes||'—')}</td><td><div class="actions"><button class="small" onclick="boxingUseSession('${m.id}')" ${remaining<=0||!status?'disabled':''}>تسجيل حصة</button><button class="small secondary" onclick="boxingPay('${m.id}')" ${m.price<=m.paid?'disabled':''}>تحصيل</button><button class="small danger" onclick="deleteItem('boxingMembers','${m.id}')">حذف</button></div></td></tr>`}).join('')||'<tr><td colspan="13" class="empty">لا يوجد مشتركون في البوكس</td></tr>'}
+function boxingUseSession(id){let m=db.boxingMembers.find(x=>x.id===id);if(!m)return;let left=m.sessions-(m.used?.length||0);if(left<=0||!boxingStatus(m)){alert('الاشتراك منتهي أو استُنفدت الحصص.');return}if(!confirm('تأكيد تسجيل حصة للمشترك '+m.name+'؟'))return;m.used ||= [];m.used.push({date:today()});save();if(left===2)alert('تم تسجيل الحصة. متبقي حصة واحدة فقط.');else alert('تم تسجيل الحصة. المتبقي: '+(left-1)+' حصة.')}
+function boxingPay(id){let m=db.boxingMembers.find(x=>x.id===id);if(!m)return;let remain=m.price-m.paid;if(remain<=0)return;let amount=Number(prompt('المتبقي '+money(remain)+'\nأدخل المبلغ المحصل:'));if(!Number.isFinite(amount)||amount<=0||amount>remain){alert('قيمة غير صحيحة');return}let method=prompt('طريقة الدفع: كاش / محفظة / إنستا باي / آجل','كاش')||'كاش';m.paid+=amount;m.payments.push({date:today(),amount,method});save()}
+el('memberForm').querySelector('[name=start]').value=today();
+el('memberForm').querySelector('[name=start]').addEventListener('change',updateMemberDatePreview);el('memberForm').querySelector('[name=duration]').addEventListener('input',updateMemberDatePreview);el('memberForm').querySelector('[name=sessions]').addEventListener('input',updateMemberDatePreview);updateMemberDatePreview();
+el('memberSearch').value='';
+function memberUsage(m){let period=memberPeriodUsage(m),expired=m.end<today(),depleted=!expired&&period.remaining===0,quota=Number(m.sessions)||0;return {used:period.used,remaining:period.remaining,quota,packageMode:quota>0,expired,depleted,last:db.attendance.filter(a=>a.member===m.id).sort((a,b)=>b.date.localeCompare(a.date))[0]?.date||'—',period:period.period}}
+function renderMembers(){let q=(el('memberSearch').value||'').toLowerCase(),filter=el('memberFilter').value;let arr=db.members.filter(m=>(m.name.toLowerCase().includes(q)||(m.phone||'').includes(q))&&(filter==='all'||(filter==='active'?active(m):!active(m))));el('memberRows').innerHTML=arr.map(m=>{let u=memberUsage(m),warning=u.expired?'<br><span class="badge bad">انتهى الاشتراك — الحصص المتبقية انتهت</span>':u.remaining<=2&&u.remaining>0?`<br><span class="badge warn">تنبيه: متبقي ${u.remaining} حصة في مدة الاشتراك</span>`:u.remaining===0?'<br><span class="badge bad">اكتملت حصص الاشتراك</span>':'';return `<tr><td>${esc(m.name)}</td><td>${esc(m.phone||'—')}</td><td>${typeName(m.type)}</td><td>${u.quota}</td><td>${u.used}</td><td>${u.remaining}${warning}</td><td>${m.duration} شهر</td><td>${m.start}</td><td>${m.end}</td><td>${money(m.price)}</td><td>${money(m.paid)}</td><td>${money(Math.max(0,m.price-m.paid))}</td><td><span class="badge ${active(m)?'ok':'bad'}">${active(m)?'نشط':(m.end<today()?'منتهي المدة':(memberUsage(m).depleted?'اكتملت الحصص':'لم يبدأ'))}</span></td><td><div class="actions"><button class="small" onclick="payMember('${m.id}')">تحصيل</button><button class="small secondary" onclick="renewMember('${m.id}')">اشتراك جديد</button><button class="small danger" onclick="deleteItem('members','${m.id}')">حذف</button></div></td></tr>`}).join('')||'<tr><td colspan="14" class="empty">لا يوجد مشتركين</td></tr>'}
+function payMember(id){let m=db.members.find(x=>x.id===id),remain=m.price-m.paid;if(remain<=0){alert('الاشتراك مدفوع بالكامل');return}let amount=Number(prompt('المتبقي '+money(remain)+'\\nأدخل المبلغ المحصل:'));if(!amount||amount<=0||amount>remain){alert('قيمة غير صحيحة');return}let method=prompt('طريقة الدفع: كاش / محفظة / تحويل بنكي','كاش')||'كاش';m.paid+=amount;m.payments.push({date:today(),amount,method});save()}
+function renewMember(id){let m=db.members.find(x=>x.id===id);if(!m)return;let f=el('memberForm');f.querySelector('[name=name]').value=m.name;f.querySelector('[name=phone]').value=m.phone||'';f.querySelector('[name=type]').value=m.type||'iron';f.querySelector('[name=sessions]').value='';f.querySelector('[name=duration]').value=m.duration||1;f.querySelector('[name=start]').value=today();f.querySelector('[name=price]').value='';f.querySelector('[name=paid]').value=0;updateMemberDatePreview();showTab('members');window.scrollTo({top:0,behavior:'smooth'})}
+function deleteItem(collection,id){if(collection==='expenses'&&!requireManager())return;if(confirm('تأكيد حذف السجل؟')){db[collection]=db[collection].filter(x=>x.id!==id);save()}}
+function renderAttendance(){renderAttendanceOptions();el('attendanceRows').innerHTML=[...db.attendance].reverse().map(a=>{let m=db.members.find(x=>x.id===a.member);return `<tr><td>${a.date}</td><td>${esc(m?.name||'عضو محذوف')}</td><td>${esc(m?.phone||'')}</td><td>${a.time}</td><td><button class="small danger" onclick="deleteItem('attendance','${a.id}')">حذف</button></td></tr>`}).join('')||'<tr><td colspan="5" class="empty">لا يوجد حضور مسجل</td></tr>'}
+function renderAttendanceOptions(){let q=(el('attSearch')?.value||'').trim().toLowerCase(),current=el('attMember').value;let arr=db.members.filter(m=>active(m)&&(m.name.toLowerCase().includes(q)||(m.phone||'').toLowerCase().includes(q)));el('attMember').innerHTML=arr.map(m=>`<option value="${m.id}">${esc(m.name)} - ${esc(m.phone||'بدون رقم')}</option>`).join('');if(arr.some(m=>m.id===current))el('attMember').value=current;renderAttendanceSummary()}
+function renderAttendanceSummary(){let m=db.members.find(x=>x.id===el('attMember').value);if(!m){el('attSummary').textContent='لا يوجد مشترك مطابق للبحث.';return}let date=el('attDate').value||today(),u=memberPeriodUsage(m,date);el('attSummary').innerHTML=`<b>${esc(m.name)}</b> — الاشتراك من ${m.start} إلى ${m.end}<br>إجمالي الحصص طوال الاشتراك: ${u.quota} | حضر: ${u.used} | المتبقي: <b>${u.remaining} حصة</b><br><span class="tiny">مدة الاشتراك: ${u.period.start||'—'} إلى ${u.period.end||'—'}</span>${u.remaining<=2&&u.remaining>0?'<br><span class="badge warn">تنبيه: اقترب نفاد حصص الاشتراك</span>':''}${u.remaining===0?'<br><span class="badge bad">لا توجد حصص متبقية — يلزم اشتراك جديد</span>':''}`}
+function addAttendance(){let id=el('attMember').value;if(!id){alert('ابحث واختر مشتركًا نشطًا أولًا');return}let date=el('attDate').value;if(!date){alert('حدد تاريخ الحضور.');return}let m=db.members.find(x=>x.id===id),u=memberPeriodUsage(m,date);if(!u.period.active){alert('تاريخ الحضور خارج مدة الاشتراك المحددة.');return}if(db.attendance.some(a=>a.member===id&&a.date===date)){alert('تم تسجيل حضور هذا المشترك في هذا اليوم بالفعل');return}if(u.remaining<=0){alert('انتهت كل حصص الاشتراك. لا يمكن تسجيل حضور إلا بعد عمل اشتراك جديد.');return}db.attendance.push({id:uid(),member:id,date,time:new Date().toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})});save();let after=memberPeriodUsage(m,date);if(after.remaining<=2&&after.remaining>0)alert(`تنبيه: متبقي ${after.remaining} حصة فقط للاعب ${m.name} من إجمالي الاشتراك.`);else if(after.remaining===0)alert(`تم استهلاك كل حصص اشتراك ${m.name}. انتهى الاشتراك ويلزم عمل اشتراك جديد.`)}
+el('dailyForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target,price=Number(val(f,'price'));db.daily.push({id:uid(),name:val(f,'name')||'عميل يومي',phone:val(f,'phone'),type:val(f,'type'),date:val(f,'date'),price,method:val(f,'method'),notes:val(f,'notes').trim()});f.reset();f.querySelector('[name=date]').value=today();save()});
+function renderDaily(){el('dailyRows').innerHTML=[...db.daily].reverse().map(x=>`<tr><td>${x.date}</td><td>${esc(x.name)}</td><td>${typeName(x.type)}</td><td>${money(x.price)}</td><td>${esc(x.method||'—')}</td><td>${esc(x.notes||'—')}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">لا توجد حصص يومية</td></tr>'}
+el('dailyForm').querySelector('[name=type]').addEventListener('change',e=>{let f=e.target.form;f.querySelector('[name=price]').value=Number(db.prices[e.target.value==='both'?'dailyBoth':'dailyIron']||0)});
+function renderProductOptions(){let opts=db.products.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');el('buyProduct').innerHTML=opts;el('sellProduct').innerHTML=opts;let selected=db.products.find(p=>p.id===el('sellProduct').value)||db.products[0];if(selected&&el('sellPrice')&&!el('sellPrice').value)el('sellPrice').value=selected.salePrice||''}
+el('productForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target,name=val(f,'name').trim();if(!name){alert('اكتب اسم المنتج أولًا.');return}if(db.products.some(p=>p.name.trim().toLowerCase()===name.toLowerCase())){alert('هذا المنتج مسجل بالفعل في المخزون. اختره من قائمة المشتريات بدل إضافة صنف مكرر.');return}db.products.push({id:uid(),name,category:val(f,'category'),min:Number(val(f,'min'))||0,barcode:val(f,'barcode'),salePrice:0});f.reset();f.querySelector('[name=min]').value=2;save();alert('تمت إضافة المنتج بنجاح. يمكنك الآن اختياره من المشتريات أو المبيعات.')});
+function batchStatus(b){if(!b.exp)return 'غير محدد';if(b.exp<today())return 'منتهي';let days=Math.ceil((new Date(b.exp+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000);return days<=30?'قرب الانتهاء':'ساري'}
+function renderStock(){el('stockRows').innerHTML=db.products.map(p=>{let bs=db.batches.filter(b=>b.product===p.id),qty=sum(bs,b=>b.qty),value=sum(bs,b=>b.qty*b.cost),status=bs.some(b=>batchStatus(b)==='منتهي')?'يوجد منتهي':bs.some(b=>batchStatus(b)==='قرب الانتهاء')?'قرب الانتهاء':'سليم';return `<tr><td>${esc(p.name)}</td><td>${esc(p.category||'—')}</td><td>${qty}</td><td>${p.min}</td><td>${money(value)}</td><td><span class="badge ${status==='سليم'?'ok':status==='قرب الانتهاء'?'warn':'bad'}">${status}</span></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">أضف منتجاتك أولًا</td></tr>';
+el('batchRows').innerHTML=[...db.batches].reverse().map(b=>{let p=db.products.find(x=>x.id===b.product),s=batchStatus(b);return `<tr><td>${esc(p?.name||'منتج محذوف')}</td><td>${esc(b.batch||'—')}</td><td>${b.qty}</td><td>${money(b.cost)}</td><td>${b.mfg||'—'}</td><td>${b.exp||'—'}</td><td><span class="badge ${s==='ساري'?'ok':s==='قرب الانتهاء'?'warn':s==='منتهي'?'bad':''}">${s}</span></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">لا توجد تشغيلات</td></tr>'}
+el('buyForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target,product=val(f,'product'),qty=Number(val(f,'qty')),cost=Number(val(f,'cost')),total=qty*cost,paid=Number(val(f,'paid'));if(!product||!db.products.some(p=>p.id===product)){alert('اختَر منتجًا مسجلًا في المخزون أولًا.');return}if(!Number.isInteger(qty)||qty<1||!Number.isFinite(cost)||cost<0||!Number.isFinite(paid)||paid<0||paid>total){alert('راجع الكمية وسعر الشراء والمبلغ المدفوع.');return}let purchase={id:uid(),product,supplier:val(f,'supplier'),qty,cost,salePrice:Number(val(f,'salePrice'))||0,total,paid,remaining:total-paid,date:val(f,'date'),method:val(f,'method'),payments:paid>0?[{date:val(f,'date'),amount:paid,method:val(f,'method')}]:[]};db.purchases.push(purchase);let prod=db.products.find(x=>x.id===product);if(prod)prod.salePrice=purchase.salePrice;db.batches.push({id:uid(),product,qty,cost,batch:val(f,'batch'),mfg:val(f,'mfg'),exp:val(f,'exp'),purchase:purchase.id});f.reset();f.querySelector('[name=date]').value=today();save();alert('تم حفظ فاتورة الشراء وإضافة الكمية للمخزون بنجاح.')});
+function addPurchasePayment(id){let p=db.purchases.find(x=>x.id===id);if(!p)return;p.payments ||= (p.paid>0?[{date:p.date,amount:p.paid,method:p.method||'كاش'}]:[]);let remain=Math.max(0,Number(p.total)-Number(p.paid));if(remain<=0){alert('الفاتورة مدفوعة بالكامل.');return}let amount=Number(prompt('المبلغ المتبقي: '+money(remain)+'\\nاكتب المبلغ الذي دفعته الآن:'));if(!Number.isFinite(amount)||amount<=0||amount>remain){alert('المبلغ غير صحيح.');return}let date=prompt('تاريخ الدفع (YYYY-MM-DD):',today());if(!date)return;if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)){alert('اكتب التاريخ بالشكل YYYY-MM-DD');return}let method=prompt('طريقة الدفع: كاش / محفظة / تحويل بنكي','كاش')||'كاش';p.payments.push({date,amount,method});p.paid=Number(p.paid)+amount;p.remaining=Math.max(0,Number(p.total)-p.paid);save();alert('تم تسجيل الدفعة وتحديث المبلغ المتبقي.')}
+function renderPurchases(){el('buyRows').innerHTML=[...db.purchases].reverse().map(p=>`<tr><td>${p.date}</td><td>${esc(db.products.find(x=>x.id===p.product)?.name||'—')}</td><td>${esc(p.supplier||'—')}</td><td>${p.qty}</td><td>${money(p.total)}</td><td>${money(p.paid)}</td><td>${money(p.remaining)}</td><td><div class="actions"><button class="small ${p.remaining>0?'':'secondary'}" onclick="addPurchasePayment('${p.id}')" ${p.remaining<=0?'disabled':''}>${p.remaining>0?'سداد المتبقي':'مدفوعة'}</button></div></td></tr>`).join('')||'<tr><td colspan="8" class="empty">لا توجد مشتريات</td></tr>'}
+el('sellProduct').addEventListener('change',()=>{let p=db.products.find(x=>x.id===el('sellProduct').value);el('sellPrice').value=p?.salePrice||''});
+el('sellForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target,pid=val(f,'product'),qty=Number(val(f,'qty')),price=Number(val(f,'price')),date=val(f,'date');if(!pid||!db.products.some(p=>p.id===pid)){alert('اختَر منتجًا مسجلًا في المخزون أولًا.');return}if(!Number.isInteger(qty)||qty<1||!Number.isFinite(price)||price<0||!date){alert('راجع المنتج والكمية وسعر البيع والتاريخ.');return}let eligible=db.batches.filter(b=>b.product===pid&&b.qty>0&&(!b.exp||b.exp>=date)).sort((a,b)=>(a.exp||'9999').localeCompare(b.exp||'9999')),available=sum(eligible,b=>b.qty);if(qty>available){alert('الكمية المتاحة غير كافية. المتاح غير منتهي الصلاحية: '+available);return}let left=qty,cost=0;for(let b of eligible){let take=Math.min(left,b.qty);b.qty-=take;cost+=take*b.cost;left-=take;if(!left)break}db.sales.push({id:uid(),product:pid,qty,price,customer:val(f,'customer'),date,method:val(f,'method'),total:qty*price,cost});f.reset();f.querySelector('[name=date]').value=today();save();alert('تم تسجيل عملية البيع وتحديث المخزون بنجاح.')});
+function renderSales(){el('sellRows').innerHTML=[...db.sales].reverse().map(s=>`<tr><td>${s.date}</td><td>${esc(db.products.find(x=>x.id===s.product)?.name||'—')}</td><td>${esc(s.customer||'—')}</td><td>${s.qty}</td><td>${money(s.price)}</td><td>${money(s.total)}</td><td>${money(s.cost)}</td><td>${money(s.total-s.cost)}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">لا توجد مبيعات</td></tr>'}
+
+function normalizeReturnSearch(v){return String(v||'').trim().toLocaleLowerCase().replace(/[\s-]+/g,'')}
+function returnProductMatches(){
+ let q=normalizeReturnSearch(el('returnProductSearch').value);
+ if(!q)return db.products;
+ return db.products.filter(p=>[p.name,p.barcode,p.id].some(v=>normalizeReturnSearch(v).includes(q)));
+}
+function renderReturnProductHints(){
+ let hints=el('returnProductHints');
+ hints.innerHTML=db.products.map(p=>`<option value="${esc(p.name)}"></option>${p.barcode?`<option value="${esc(p.barcode)}"></option>`:''}`).join('');
+}
+function renderReturnOptions(){
+ let type=el('returnType').value,sel=el('returnInvoice'),old=sel.value,rows=type==='sale'?db.sales:db.purchases;
+ let matched=returnProductMatches(),ids=new Set(matched.map(p=>p.id));
+ let query=normalizeReturnSearch(el('returnProductSearch').value);
+ let filtered=query?rows.filter(x=>ids.has(x.product)):rows;
+ sel.innerHTML=filtered.slice().reverse().map(x=>{
+  let returned=sum((type==='sale'?db.salesReturns:db.purchaseReturns).filter(r=>r.invoice===x.id),r=>Number(r.qty)||0);
+  let available=Math.max(0,Number(x.qty||0)-returned),p=db.products.find(z=>z.id===x.product);
+  return `<option value="${x.id}" data-available="${available}">${x.date} — ${esc(p?.name||'منتج')} — فاتورة ${String(x.id).slice(-6)} — متاح ${available}</option>`;
+ }).join('')||'<option value="">لا توجد فواتير لهذا المنتج</option>';
+ if([...sel.options].some(o=>o.value===old))sel.value=old;
+ renderReturnPreview();
+}
+function renderReturnPreview(){
+ let type=el('returnType').value,id=el('returnInvoice').value,qty=Number(el('returnQty').value)||0;
+ let invoice=(type==='sale'?db.sales:db.purchases).find(x=>x.id===id),returned=(type==='sale'?db.salesReturns:db.purchaseReturns).filter(x=>x.invoice===id);
+ let already=sum(returned,x=>Number(x.qty)||0),available=Math.max(0,Number(invoice?.qty||0)-already);
+ let unit=Number(invoice?.[type==='sale'?'price':'cost'])||0;
+ let max=type==='purchase'&&invoice?Math.min(available,sum(db.batches.filter(b=>b.purchase===invoice.id),b=>Number(b.qty)||0)):available;
+ el('returnQty').max=max||1;
+ el('returnPreview').textContent=invoice?`المنتج: ${db.products.find(p=>p.id===invoice.product)?.name||'—'} | الكمية المتاحة للمرتجع: ${max} | قيمة الوحدة: ${money(unit)} | إجمالي المرتجع المتوقع: ${money(qty*unit)}`:'اختر فاتورة لعرض الكمية المتاحة وقيمة المرتجع.';
+}
+el('returnType').addEventListener('change',renderReturnOptions);
+el('returnProductSearch').addEventListener('input',renderReturnOptions);
+el('returnInvoice').addEventListener('change',renderReturnPreview);
+el('returnQty').addEventListener('input',renderReturnPreview);
+el('returnForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ let f=e.target,type=val(f,'type'),invoiceId=val(f,'invoice'),qty=Number(val(f,'qty')),date=val(f,'date'),method=val(f,'method');
+ let invoice=(type==='sale'?db.sales:db.purchases).find(x=>x.id===invoiceId);
+ if(!invoice){alert('اختَر الفاتورة الأصلية.');return}
+ if(!Number.isInteger(qty)||qty<1||!date){alert('راجع الكمية والتاريخ.');return}
+ let prior=(type==='sale'?db.salesReturns:db.purchaseReturns).filter(x=>x.invoice===invoiceId),already=sum(prior,x=>Number(x.qty)||0),available=Math.max(0,Number(invoice.qty||0)-already);
+ let unit=Number(invoice[type==='sale'?'price':'cost'])||0,total=qty*unit;
+ if(qty>available){alert('الكمية المطلوبة أكبر من الكمية المتاحة للمرتجع.');return}
+ if(type==='purchase'){
+  let batches=db.batches.filter(b=>b.purchase===invoice.id&&b.product===invoice.product&&Number(b.qty)>0);
+  let stockAvailable=sum(batches,b=>Number(b.qty)||0);
+  if(qty>stockAvailable){alert('لا يمكن إرجاع كمية تم بيعها أو لم تعد موجودة في مخزون هذه الفاتورة. المتاح حاليًا: '+stockAvailable);return}
+  let left=qty;
+  for(let b of batches){let take=Math.min(left,Number(b.qty)||0);b.qty-=take;left-=take;if(!left)break}
+  db.purchaseReturns.push({id:uid(),invoice:invoice.id,product:invoice.product,qty,price:unit,total,date,method,reason:val(f,'reason')});
+ }else{
+  let avgCost=Number(invoice.cost||0)/(Number(invoice.qty)||1);
+  db.batches.push({id:uid(),product:invoice.product,qty,cost:avgCost,batch:'مرتجع مبيعات',mfg:'',exp:'',sourceSale:invoice.id});
+  db.salesReturns.push({id:uid(),invoice:invoice.id,product:invoice.product,qty,price:unit,total,date,method,reason:val(f,'reason')});
+ }
+ let keepProduct=el('returnProductSearch').value;f.reset();f.querySelector('[name=date]').value=today();el('returnType').value=type;el('returnProductSearch').value=keepProduct;renderReturnOptions();save();
+ alert(type==='sale'?'تم تسجيل مرتجع المبيعات وإعادة الكمية للمخزون.':'تم تسجيل مرتجع المشتريات وخصم الكمية من مخزون الفاتورة.');
+});
+function renderReturns(){
+ renderReturnProductHints();
+ let rows=[...(db.salesReturns||[]).map(x=>({...x,type:'مرتجع مبيعات'})),...(db.purchaseReturns||[]).map(x=>({...x,type:'مرتجع مشتريات'}))].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+ el('returnRows').innerHTML=rows.map(x=>`<tr><td>${x.date}</td><td>${x.type}</td><td>${String(x.invoice||'').slice(-6)}</td><td>${esc(db.products.find(p=>p.id===x.product)?.name||'—')}</td><td>${x.qty}</td><td>${money(x.price)}</td><td>${money(x.total)}</td><td>${esc(x.method||'—')}</td><td>${esc(x.reason||'—')}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">لا توجد مرتجعات مسجلة</td></tr>';
+ renderReturnOptions();
+}
+
+el('expenseForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target,amount=Number(val(f,'amount'));if(!Number.isFinite(amount)||amount<=0){alert('اكتب مبلغًا صحيحًا.');return}db.expenses.push({id:uid(),desc:val(f,'desc').trim(),amount,date:val(f,'date'),method:'كاش',userId:currentUser?.id||null,createdByName:currentUser?.name||'المدير',shiftId:currentShift?.id||null});f.reset();f.querySelector('[name=date]').value=today();save();alert('تم تسجيل المصروف وخصمه من الخزنة.');});
+function renderExpenses(){let rows=[...db.expenses].reverse().map(x=>{let creator=x.createdByName||'—',shift=x.shiftId?((db.shifts||[]).find(s=>s.id===x.shiftId)?.userName||'—'):'مدير';return `<tr><td>${x.date}</td><td>${esc(x.desc)}</td><td>${money(x.amount)}</td><td>${esc(creator)}</td><td>${esc(shift)}</td><td><button class="small danger" onclick="deleteItem('expenses','${x.id}')">حذف</button></td></tr>`}).join('');el('expenseRows').innerHTML=rows||'<tr><td colspan="6" class="empty">لا توجد مصروفات مسجلة</td></tr>'; }
+function monthTotals(m){let subs=sum(db.members.flatMap(x=>x.payments||[]).filter(p=>monthOf(p.date)===m),p=>p.amount)+sum((db.boxingMembers||[]).flatMap(x=>x.payments||[]).filter(p=>monthOf(p.date)===m),p=>p.amount),daily=sum(db.daily.filter(x=>monthOf(x.date)===m),x=>x.price),grossSales=sum(db.sales.filter(x=>monthOf(x.date)===m),x=>x.total),salesReturns=sum((db.salesReturns||[]).filter(x=>monthOf(x.date)===m),x=>x.total),purchaseReturns=sum((db.purchaseReturns||[]).filter(x=>monthOf(x.date)===m),x=>x.total),sales=grossSales-salesReturns,buyPaid=sum(db.purchases.flatMap(x=>(x.payments||[{date:x.date,amount:x.paid||0}])).filter(p=>monthOf(p.date)===m),p=>Number(p.amount)||0),expenses=sum(db.expenses.filter(x=>monthOf(x.date)===m),x=>x.amount),income=subs+daily+sales+purchaseReturns,out=buyPaid+expenses;return {subs,daily,sales,grossSales,salesReturns,purchaseReturns,buyPaid,expenses,income,out,net:income-out}}
+function saveMonthlyClose(){let m=el('closeMonth').value||today().slice(0,7),t=monthTotals(m),item={month:m,subs:t.subs,daily:t.daily,sales:t.sales,out:t.out,net:t.net,notes:el('closeNotes').value||'',savedAt:today()};let old=db.monthlyClosings.findIndex(x=>x.month===m);if(old>=0&&!confirm('يوجد تقفيل محفوظ لهذا الشهر. هل تريد تحديثه بالأرقام الحالية؟'))return;if(old>=0)db.monthlyClosings[old]=item;else db.monthlyClosings.push(item);save();alert('تم حفظ تقفيل '+m+' في الأرشيف السنوي.')}
+function renderClosingArchive(){el('closingRows').innerHTML=[...(db.monthlyClosings||[])].sort((a,b)=>b.month.localeCompare(a.month)).map(x=>`<tr><td>${x.month}</td><td>${money(x.subs+x.daily+x.sales)}</td><td>${money(x.out)}</td><td>${money(x.net)}</td><td>${esc(x.notes||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد تقفيلات محفوظة حتى الآن</td></tr>'}
+function renderFinance(){let m=el('closeMonth').value||today().slice(0,7),t=monthTotals(m),prev=new Date(m+'-01T12:00:00');prev.setMonth(prev.getMonth()-1);let pm=prev.toISOString().slice(0,7),pt=monthTotals(pm);el('fSubs').textContent=money(t.subs);el('fDaily').textContent=money(t.daily);el('fSales').textContent=money(t.sales);el('fExpenses').textContent=money(t.out);el('fNet').textContent=money(t.net);el('fCompare').textContent=`مرتجعات المبيعات: ${money(t.salesReturns)} — مرتجعات المشتريات المستلمة: ${money(t.purchaseReturns)}. الشهر السابق (${pm}): صافي ${money(pt.net)} — الفرق: ${money(t.net-pt.net)}. المديونيات على المشتركين: ${money(sum(db.members,m=>Math.max(0,m.price-m.paid)))} (رصيد حالي وليس تحصيل الشهر).`;renderClosingArchive()}
+function renderReports(){let m=el('reportMonth').value||today().slice(0,7),t=monthTotals(m),manager=currentUser?.role==='manager';el('reportOutput').innerHTML=`<h2>تقرير ${m}</h2><p>تحصيل الاشتراكات (بما فيها البوكس): <b>${money(t.subs)}</b></p><p>الحصص اليومية: <b>${money(t.daily)}</b></p><p>مبيعات المنتجات بعد خصم المرتجعات: <b>${money(t.sales)}</b></p><p>مرتجعات المبيعات: <b>${money(t.salesReturns)}</b></p><p>مرتجعات المشتريات المستلمة: <b>${money(t.purchaseReturns)}</b></p>${manager?`<p>إجمالي التحصيلات: <b>${money(t.income)}</b></p>`:``}<p>المشتريات المدفوعة: <b>${money(t.buyPaid)}</b></p><p>المصروفات اليدوية: <b>${money(t.expenses)}</b></p><p>صافي حركة النقدية: <b>${money(t.net)}</b></p><p>مديونيات المشتركين الحالية: <b>${money(sum(db.members,m=>Math.max(0,m.price-m.paid)))}</b></p>`}
+function renderSettings(){let rows='';[2,3,4,5,6,8,12,20].forEach(d=>rows+=`<tr><td>${d>=8?d+' حصص':d+' أيام أسبوعيًا'}</td><td><input type="number" min="0" step=".01" id="p_iron_${d}" value="${db.prices.iron[d]||0}"></td><td><input type="number" min="0" step=".01" id="p_both_${d}" value="${db.prices.both[d]||0}"></td></tr>`);el('priceRows').innerHTML=rows;el('dailyIron').value=db.prices.dailyIron||0;el('dailyBoth').value=db.prices.dailyBoth||0}
+el('priceForm').addEventListener('submit',e=>{e.preventDefault();[2,3,4,5,6,8,12,20].forEach(d=>{db.prices.iron[d]=Number(el('p_iron_'+d).value);db.prices.both[d]=Number(el('p_both_'+d).value)});db.prices.dailyIron=Number(el('dailyIron').value);db.prices.dailyBoth=Number(el('dailyBoth').value);save();alert('تم حفظ الأسعار')});
+function renderDashboard(){let activeMembers=db.members.filter(active).concat((db.boxingMembers||[]).filter(boxingStatus)),exp=db.members.filter(m=>{let days=(new Date(m.end+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000;return days>=0&&days<=7});let t=monthTotals(today().slice(0,7)),todayIncome=sum(db.members.flatMap(m=>m.payments||[]).filter(p=>p.date===today()),p=>p.amount)+sum((db.boxingMembers||[]).flatMap(m=>m.payments||[]).filter(p=>p.date===today()),p=>p.amount)+sum(db.daily.filter(x=>x.date===today()),x=>x.price)+sum(db.sales.filter(x=>x.date===today()),x=>x.total),stock=sum(db.batches,b=>b.qty*b.cost);el('dActive').textContent=activeMembers.length;el('dExpiring').textContent=exp.length;el('dToday').textContent=money(todayIncome);el('dStock').textContent=money(stock);el('dMonthIncome').textContent=money(t.income);el('dMonthExpenses').textContent=money(t.expenses);let manager=currentUser?.role==='manager';el('dMonthIncomeCard')?.classList.toggle('hidden',!manager);el('dMonthExpensesCard')?.classList.toggle('hidden',false);let alerts=[];db.batches.forEach(b=>{let s=batchStatus(b),p=db.products.find(x=>x.id===b.product);if(b.qty>0&&(s==='منتهي'||s==='قرب الانتهاء'))alerts.push(`${p?.name||'منتج'}: ${s} (${b.qty})`)});db.products.forEach(p=>{let q=sum(db.batches.filter(b=>b.product===p.id),b=>b.qty);if(q<=p.min)alerts.push(`${p.name}: مخزون منخفض (${q})`)});el('dAlerts').innerHTML=alerts.length?alerts.map(x=>`<div>• ${esc(x)}</div>`).join(''):'لا توجد تنبيهات حالية';
+let expiring=[];for(let m of db.members){let u=memberPeriodUsage(m,today());if(!u.period.active)continue;let days=Math.round((new Date(m.end+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000);if(days===2||days===0||u.remaining<=2)expiring.push({m,days,remaining:u.remaining,quota:u.quota,used:u.used})}expiring.sort((a,b)=>a.days-b.days||a.remaining-b.remaining||a.m.name.localeCompare(b.m.name,'ar'));el('dExpiryAlerts').innerHTML=expiring.length?expiring.map(({m,days,remaining})=>`<div style="padding:8px;margin:5px 0;border-radius:8px;background:${days===0||remaining===0?'rgba(220,70,70,.12)':'rgba(230,160,40,.12)'}"><b>${esc(m.name)}</b> — ${days===0?'<span class="badge bad">آخر يوم في مدة الاشتراك</span>':days===2?'<span class="badge warn">متبقي يومان على انتهاء مدة الاشتراك</span>':''}${remaining===0?' <span class="badge bad">اكتملت الحصص</span>':remaining<=2?` <span class="badge warn">متبقي ${remaining} حصة فقط</span>`:''}<br>الحصص المستخدمة: ${memberPeriodUsage(m).used} من ${Number(m.sessions)||0} طوال مدة الاشتراك — نهاية الاشتراك: ${prettyDate(m.end)}</div>`).join(''):'لا توجد اشتراكات قريبة من الانتهاء أو نفاد الحصص';
+}
+
+function refreshAll(){renderMembers();renderAttendance();renderDaily();renderProductOptions();renderStock();renderPurchases();renderSales();renderReturns();renderExpenses();renderFinance();renderReports();renderSettings();renderDashboard();if(currentUser?.role==='manager'&&document.querySelector('.section.active')?.id==='staff')renderStaff()}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function backupData(){if(!requireManager())return;let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gym-backup-'+today()+'.json';a.click();URL.revokeObjectURL(a.href)}
+function restoreData(e){if(!requireManager())return;let file=e.target.files[0];if(!file)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.members||!x.products||!x.prices)throw Error();if(confirm('سيتم استبدال كل البيانات الحالية. هل تريد المتابعة؟')){db=x;db.users ||= [];db.shifts ||= [];db.auditLog ||= [];if(!db.users.length)db.users.push({id:'manager-root',name:'المدير',username:'admin',password:'1234',role:'manager',active:true,permissions:[]});auditSnapshot=snapshotRecords();save();alert('تم استرجاع النسخة')}}catch(err){alert('ملف النسخة الاحتياطية غير صالح')}};r.readAsText(file)}
+function clearData(){if(!requireManager())return;if(confirm('تحذير: سيتم حذف كل بيانات النظام نهائيًا من هذا المتصفح. هل أنت متأكد؟')){localStorage.removeItem(KEY);db=structuredClone(defaultData);db.users=[{id:'manager-root',name:'المدير',username:'admin',password:'1234',role:'manager',active:true,permissions:[]}];db.shifts=[];db.auditLog=[];save()}}
+function exportCSV(){let m=el('reportMonth').value||today().slice(0,7),t=monthTotals(m),rows=[['البند','القيمة بالجنيه'],['تحصيل الاشتراكات',t.subs],['الحصص اليومية',t.daily],['مبيعات المنتجات بعد المرتجعات',t.sales],['مرتجعات المبيعات',t.salesReturns],['مرتجعات المشتريات المستلمة',t.purchaseReturns],...(currentUser?.role==='manager'?[['إجمالي التحصيلات',t.income]]:[]),['المشتريات المدفوعة',t.buyPaid],['المصروفات',t.expenses],['صافي حركة النقدية',t.net]];let csv='\\uFEFF'+rows.map(r=>r.join(',')).join('\\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='gym-report-'+m+'.csv';a.click();URL.revokeObjectURL(a.href)}
+initDates();refreshAll();el('loginOverlay').style.display='flex';if(window.IRON_FIREBASE)initFirebaseSync();else window.addEventListener('iron-firebase-ready',initFirebaseSync,{once:true});el('firstLoginHint').classList.toggle('hidden',!db.users.some(u=>u.username==='admin'&&u.password==='1234'));
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body></html>
